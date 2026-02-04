@@ -1,20 +1,30 @@
 import os
+import json
 from google.cloud import storage
+from google.oauth2 import service_account
 from dotenv import load_dotenv
 
-# Ambil konfigurasi dari file .env
 load_dotenv()
 
 def upload_to_gcs(local_file_path, destination_blob_name):
-    """Mengunggah file dari lokal Codespaces ke GCS Bucket."""
+    # 1. Ambil rahasia dari environment variable (GitHub Secrets)
+    gcp_json_string = os.getenv("GCP_KEY_JSON")
     bucket_name = os.getenv("GCS_BUCKET_NAME")
+
+    if not gcp_json_string:
+        print("Error: GCP_KEY_JSON tidak ditemukan di Secrets!")
+        return
+
+    # 2. Ubah string JSON jadi kredensial resmi Google
+    info = json.loads(gcp_json_string)
+    credentials = service_account.Credentials.from_service_account_info(info)
     
-    # Inisialisasi client GCS
-    # Secara otomatis membaca path JSON dari GOOGLE_APPLICATION_CREDENTIALS di .env
-    storage_client = storage.Client()
+    # 3. Koneksi ke GCS
+    storage_client = storage.Client(credentials=credentials)
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
 
-    print(f"Sedang mengunggah {local_file_path} ke GCS...")
+    # 4. Upload!
+    print(f"Mengunggah {local_file_path} ke GCS...")
     blob.upload_from_filename(local_file_path)
-    print(f"Selesai! File tersedia di gs://{bucket_name}/{destination_blob_name}")
+    print(f"Sukses! Cek di bucket: {bucket_name}")
