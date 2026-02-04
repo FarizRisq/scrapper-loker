@@ -1,0 +1,4 @@
+playwright
+pandas
+google-cloud-storage
+python-dotenv
